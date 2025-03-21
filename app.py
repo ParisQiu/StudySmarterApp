@@ -10,9 +10,14 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 import secrets
 import os
 from flask_jwt_extended import get_jwt
+from flask_cors import CORS
+
 
 # Create a Flask application instance
 app = Flask(__name__)
+
+# Configure CORS to allow specified source access
+CORS(app, resources={r"/*": {"origins": "https://your-frontend-url.com"}})
 
 # Load database configuration from config.py
 app.config.from_object(Config)
@@ -39,6 +44,12 @@ class User(db.Model):
     posts = db.relationship('Post', backref='creator', lazy=True)
     comments = db.relationship('Comment', backref='creator', lazy=True)
 
+    # Explicitly define __init__ to prevent Pylance errors
+    def __init__(self, username, email, password):
+        self.username = username
+        self.email = email
+        self.password = password
+
 # Define StudyRoom model
 class StudyRoom(db.Model):
     __tablename__ = 'study_rooms'
@@ -50,6 +61,15 @@ class StudyRoom(db.Model):
     created_at = db.Column(db.TIMESTAMP, default=datetime.now(timezone.utc))
 
     posts = db.relationship('Post', backref='study_room', lazy=True)
+
+
+    # Explicitly define __init__ to prevent Pylance errors
+    def __init__(self, name, description, capacity, creator_id):
+        self.name = name
+        self.description = description
+        self.capacity = capacity
+        self.creator_id = creator_id
+
 
 # Define Post model
 class Post(db.Model):
@@ -63,6 +83,12 @@ class Post(db.Model):
     comments = db.relationship('Comment', backref='post', lazy=True)
     media = db.relationship('Media', backref='post', lazy=True)
 
+   
+    def __init__(self, content, creator_id, room_id=None):
+        self.content = content
+        self.creator_id = creator_id
+        self.room_id = room_id
+
 # Define Comment model
 class Comment(db.Model):
     __tablename__ = 'comments'
@@ -72,6 +98,16 @@ class Comment(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.TIMESTAMP, default=datetime.now(timezone.utc))
 
+    
+    def __init__(self, post_id, creator_id, content):
+        self.post_id = post_id
+        self.creator_id = creator_id
+        self.content = content
+
+
+
+
+
 # Define Media model
 class Media(db.Model):
     __tablename__ = 'media'
@@ -80,6 +116,19 @@ class Media(db.Model):
     file_path = db.Column(db.String(255), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=True)
     created_at = db.Column(db.TIMESTAMP, default=datetime.now(timezone.utc))
+
+    # Explicitly define __init__ to avoid Pylance errors
+    def __init__(self, type, file_path, post_id=None):
+        self.type = type
+        self.file_path = file_path
+        self.post_id = post_id
+
+
+
+# Route to test database connection
+@app.route('/')
+def home():
+    return jsonify({"message": "Welcome to Study Smarter API!"})
 
 # Route to test database connection
 @app.route('/test_db')
@@ -92,6 +141,7 @@ def test_db():
             return jsonify({'message': "Success! Connected to the database, but no users found."}), 200
     except Exception as e:
         return jsonify({'error': str(e), 'message': 'Failed to connect to the database.'}), 500
+
 
 
 
@@ -110,7 +160,7 @@ def signup():
         password = data['password'].strip()
 
         # Check if user already exists
-        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first() # type: ignore
         if existing_user:
             return jsonify({'message': 'Username or Email already taken'}), 409  # HTTP 409: Conflict
 
@@ -176,9 +226,12 @@ def update_user(id):
         if not user:
             return jsonify({'message': 'User not found'}), 404
 
-        data = request.json
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Invalid or missing JSON data'}), 400
 
-        # Validate and sanitize input
+       
         username = data.get('username', '').strip()
         email = data.get('email', '').strip()
 
@@ -197,6 +250,7 @@ def update_user(id):
 
     except Exception as e:
         return jsonify({'message': 'An error occurred', 'error': str(e)}), 500
+
 
 
 # Logout endpoint
@@ -296,7 +350,11 @@ def get_study_rooms():
 @app.route('/posts', methods=['POST'])
 def create_post():
     try:
-        data = request.json
+     
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Invalid or missing JSON data'}), 400
+
         content = data.get('content', '').strip()
         creator_id = data.get('creator_id')
         room_id = data.get('room_id')
@@ -304,6 +362,7 @@ def create_post():
         if not content or not creator_id:
             return jsonify({'message': 'Content and creator_id are required'}), 400
 
+      
         new_post = Post(content=content, creator_id=creator_id, room_id=room_id)
         db.session.add(new_post)
         db.session.commit()
@@ -312,6 +371,7 @@ def create_post():
 
     except Exception as e:
         return jsonify({'message': 'An error occurred', 'error': str(e)}), 500
+
 
 
 # Get all posts
@@ -347,14 +407,20 @@ def update_post(id):
         if not post:
             return jsonify({'message': 'Post not found'}), 404
 
-        data = request.json
-        post.content = data.get('content', post.content).strip()
-        db.session.commit()
+        # Use request.get_json() to prevent None.get() errors
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Invalid or missing JSON data'}), 400
 
+        # Ensure data is a dictionary before accessing keys
+        post.content = data.get('content', post.content).strip()
+
+        db.session.commit()
         return jsonify({'message': 'Post updated successfully'}), 200
 
     except Exception as e:
         return jsonify({'message': 'An error occurred', 'error': str(e)}), 500
+
 
 
 # Delete post
@@ -381,7 +447,10 @@ def delete_post(id):
 @app.route('/comments', methods=['POST'])
 def add_comment():
     try:
-        data = request.json
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Invalid or missing JSON data'}), 400
+        
         post_id = data.get('post_id')
         creator_id = data.get('creator_id')
         content = data.get('content', '').strip()
@@ -389,14 +458,16 @@ def add_comment():
         if not post_id or not creator_id or not content:
             return jsonify({'message': 'post_id, creator_id, and content are required'}), 400
 
+        
         new_comment = Comment(post_id=post_id, creator_id=creator_id, content=content)
         db.session.add(new_comment)
-        db.session.commit()
+        db.session.commit()  
 
         return jsonify({'message': 'Comment added successfully', 'comment_id': new_comment.id}), 201
 
     except Exception as e:
         return jsonify({'message': 'An error occurred', 'error': str(e)}), 500
+
 
 
 # Get all comments for a post
@@ -434,7 +505,11 @@ def delete_comment(id):
 @app.route('/media', methods=['POST'])
 def upload_media():
     try:
-        data = request.json
+        # Use request.get_json() to prevent None.get() errors
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Invalid or missing JSON data'}), 400
+
         file_type = data.get('type', '').strip()
         file_path = data.get('file_path', '').strip()
         post_id = data.get('post_id')
@@ -450,6 +525,7 @@ def upload_media():
 
     except Exception as e:
         return jsonify({'message': 'An error occurred', 'error': str(e)}), 500
+
 
 
 # Get media details
@@ -473,6 +549,8 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Ensure tables exist before running
     app.run(debug=True)
+
+   
 
 
 
