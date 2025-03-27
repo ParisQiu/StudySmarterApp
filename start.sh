@@ -1,11 +1,11 @@
 #!/bin/bash
 
-echo "Setting Flask app context..."
+echo ">>> Setting environment..."
 export FLASK_APP=app.py
-export FLASK_RUN_FROM_CLI=true
+export FLASK_ENV=production
 
-echo "Upgrading database..."
-flask db upgrade
+echo ">>> Running migration with Python..."
+python -c "from app import db; from flask_migrate import upgrade; upgrade()"
 
-echo "Starting gunicorn..."
+echo ">>> Starting Gunicorn..."
 exec gunicorn app:app
