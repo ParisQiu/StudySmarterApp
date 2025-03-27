@@ -11,10 +11,15 @@ import secrets
 import os
 from flask_jwt_extended import get_jwt
 from flask_cors import CORS
+from flask_migrate import Migrate
 
 
 # Create a Flask application instance
 app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return jsonify({"message": "Welcome to Study Smarter API!"})
 
 # Configure CORS to allow specified source access
 CORS(app, resources={r"/*": {"origins": "https://your-frontend-url.com"}})
@@ -27,6 +32,7 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', secrets.token_urlsafe
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Initialize Flask-JWT-Extended
 jwt = JWTManager(app)
@@ -125,10 +131,6 @@ class Media(db.Model):
 
 
 
-# Route to test database connection
-@app.route('/')
-def home():
-    return jsonify({"message": "Welcome to Study Smarter API!"})
 
 # Route to test database connection
 @app.route('/test_db')
@@ -141,6 +143,7 @@ def test_db():
             return jsonify({'message': "Success! Connected to the database, but no users found."}), 200
     except Exception as e:
         return jsonify({'error': str(e), 'message': 'Failed to connect to the database.'}), 500
+
 
 
 
@@ -550,10 +553,3 @@ if __name__ == '__main__':
         db.create_all()  # Ensure tables exist before running
     # Use gunicorn for deployment
     app.run(debug=True, host='0.0.0.0', port=10000)
-
-
-   
-
-
-
-

@@ -4,12 +4,11 @@ echo ">>> Setting environment..."
 export FLASK_APP=app.py
 export FLASK_ENV=production
 
-echo ">>> Running migration with Python..."
-
+echo ">>> Running migration upgrade..."
 python3 -c "
-from app import app, db
-from flask_migrate import Migrate, upgrade
-migrate = Migrate(app, db)
+from app import app
+from flask_migrate import upgrade
+
 with app.app_context():
     upgrade()
 "
