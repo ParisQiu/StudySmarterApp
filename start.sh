@@ -1,11 +1,19 @@
 #!/bin/bash
 
-echo ">>> Setting environment..."
 export FLASK_APP=app.py
 export FLASK_ENV=production
 
+echo ">>> Setting environment..."
 echo ">>> Running migration with Python..."
-python -c "from app import db; from flask_migrate import upgrade; upgrade()"
+
+
+python3 -c "
+from app import app, db
+from flask_migrate import upgrade
+with app.app_context():
+    upgrade()
+"
 
 echo ">>> Starting Gunicorn..."
-exec gunicorn app:app
+
+gunicorn app:app
