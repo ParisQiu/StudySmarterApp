@@ -12,10 +12,16 @@ import os
 from flask_jwt_extended import get_jwt
 from flask_cors import CORS
 from flask_migrate import Migrate
+from connect_db import connect_db 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Create a Flask application instance
 app = Flask(__name__)
+
+
 
 @app.route('/')
 def home():
@@ -24,9 +30,10 @@ def home():
 # Configure CORS to allow specified source access
 CORS(app, resources={r"/*": {"origins": "https://your-frontend-url.com"}})
 
+
 # Load database configuration from config.py
 app.config.from_object(Config)
-
+print(app.config['SQLALCHEMY_DATABASE_URI'])
 # Ensure to include a secure JWT Secret Key
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', secrets.token_urlsafe(32))  # Generates a secure random secret key
 
@@ -135,14 +142,16 @@ class Media(db.Model):
 # Route to test database connection
 @app.route('/test_db')
 def test_db():
-    try:
-        user = User.query.first()
-        if user:
-            return jsonify({'message': f"Success! Connected to the database. Found user: {user.username}"}), 200
-        else:
-            return jsonify({'message': "Success! Connected to the database, but no users found."}), 200
-    except Exception as e:
-        return jsonify({'error': str(e), 'message': 'Failed to connect to the database.'}), 500
+    conn = connect_db()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users') 
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify(rows), 200
+    else:
+        return jsonify({"message": "Failed to connect to the database"}), 500
 
 
 
