@@ -1,0 +1,18 @@
+# render.yaml
+
+services:
+  - type: web
+    name: StudySmarterAPI
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python run.py"
+    envVars:
+      - key: DATABASE_URL
+        value: "postgresql://your_db_user:your_db_password@localhost/studysmarter_db"
+      - key: JWT_SECRET_KEY
+        value: "your_jwt_secret_key_here"
+      - key: SECRET_KEY
+        value: "your_flask_secret_key_here"
+      - key: PORT
+        value: "5000"
