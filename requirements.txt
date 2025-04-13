@@ -6,3 +6,4 @@ psycopg[binary]
 Werkzeug>=2.2.2
 pytest==7.1.2
 gunicorn
+flask-swagger-ui

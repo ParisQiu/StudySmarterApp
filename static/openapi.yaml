@@ -1,0 +1,364 @@
+openapi: 3.0.0
+info:
+  title: StudySmarterApp API
+  version: "1.0.0"
+  description: API for managing study resources, including user authentication, study rooms, posts, comments, and media uploads.
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+paths:
+  /api/signup:
+    post:
+      summary: User Signup
+      description: Register a new user. Expects username, email, and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+              required:
+                - username
+                - email
+                - password
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: integer
+                  access_token:
+                    type: string
+        400:
+          description: Missing required fields or registration failure
+        409:
+          description: User already registered
+
+  /api/login:
+    post:
+      summary: User Login
+      description: Log in a user. The "login" field can be either email or username.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  description: User's email or username
+                password:
+                  type: string
+                  format: password
+              required:
+                - login
+                - password
+      responses:
+        200:
+          description: Login successful. Returns user information and a JWT access token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  access_token:
+                    type: string
+        400:
+          description: Missing credentials or empty values
+        401:
+          description: Invalid credentials
+
+  /api/logout:
+    post:
+      summary: User Logout
+      description: Log out the user by revoking the JWT token.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          description: Invalid token data
+
+  /api/users:
+    get:
+      summary: Get All Users
+      description: Retrieve a list of all users.
+      responses:
+        200:
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    username:
+                      type: string
+                    email:
+                      type: string
+
+  /api/study_rooms:
+    post:
+      summary: Create Study Room
+      description: Create a new study room. Expects name, capacity, and creator_id. Optionally accepts description.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                capacity:
+                  type: integer
+                  minimum: 1
+                creator_id:
+                  type: integer
+                description:
+                  type: string
+              required:
+                - name
+                - capacity
+                - creator_id
+      responses:
+        201:
+          description: Study room created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  room_id:
+                    type: integer
+        400:
+          description: Missing or invalid fields
+        404:
+          description: Creator (user) not found or other related errors
+    get:
+      summary: Get All Study Rooms
+      description: Retrieve all study rooms.
+      responses:
+        200:
+          description: List of study rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    room_id:
+                      type: integer
+                    name:
+                      type: string
+                    capacity:
+                      type: integer
+
+  /api/study_rooms/{id}:
+    get:
+      summary: Get Study Room by ID
+      description: Retrieve a specific study room by its ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        200:
+          description: Study room details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  room_id:
+                    type: integer
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  capacity:
+                    type: integer
+                  creator_id:
+                    type: integer
+        404:
+          description: Study room not found
+
+  /api/posts:
+    post:
+      summary: Create Post
+      description: Create a new post. Expects content and creator_id; optionally accepts room_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                creator_id:
+                  type: integer
+                room_id:
+                  type: integer
+              required:
+                - content
+                - creator_id
+      responses:
+        201:
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  post_id:
+                    type: integer
+                  content:
+                    type: string
+                  creator_id:
+                    type: integer
+                  room_id:
+                    type: integer
+        400:
+          description: Missing required fields or invalid values
+        404:
+          description: Related resource not found (e.g., study room)
+
+  /api/comments:
+    post:
+      summary: Create Comment
+      description: Create a comment for a post. Expects post_id, creator_id, and content.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                post_id:
+                  type: integer
+                creator_id:
+                  type: integer
+                content:
+                  type: string
+              required:
+                - post_id
+                - creator_id
+                - content
+      responses:
+        201:
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  comment_id:
+                    type: integer
+        400:
+          description: Missing or invalid fields
+        404:
+          description: Post not found
+
+  /api/media:
+    post:
+      summary: Upload Media
+      description: Upload media for a post. Expects type and file_path; optionally accepts post_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - image
+                    - video
+                    - audio
+                  description:
+                    Allowed types: image, video, audio
+                file_path:
+                  type: string
+                post_id:
+                  type: integer
+              required:
+                - type
+                - file_path
+      responses:
+        201:
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  media_id:
+                    type: integer
+                  type:
+                    type: string
+                  file_path:
+                    type: string
+                  post_id:
+                    type: integer
+        400:
+          description: Missing or invalid fields
+        404:
+          description: Post not found if post_id is provided
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
