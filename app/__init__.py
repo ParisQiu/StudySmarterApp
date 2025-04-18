@@ -4,6 +4,8 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from .config import Config
+from flask_cors import CORS
+
 
 # Initialize extensions
 db = SQLAlchemy()           # Provides ORM capabilities
@@ -19,6 +21,8 @@ def create_app():
     """
     # Set the static_folder to 'static' so that files like openapi.yaml are served from /static/openapi.yaml
     app = Flask(__name__, static_folder='../static')
+    CORS(app, origins=["http://localhost:3000"])
+
 
 
     # Debug: Print the absolute path to the static folder to ensure Flask is looking in the correct location.
@@ -59,7 +63,7 @@ def create_app():
             if rule.endpoint != "static":
                 endpoints.append({
                     "endpoint": rule.endpoint,
-                    "methods": sorted(list(rule.methods)),
+                    "methods": sorted(list(rule.methods or [])),
                     "url": str(rule)
                 })
         return jsonify({
@@ -67,5 +71,6 @@ def create_app():
             "available_endpoints": endpoints
         }), 200
 
+    
     return app
     
