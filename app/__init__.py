@@ -21,8 +21,13 @@ def create_app():
     """
     # Set the static_folder to 'static' so that files like openapi.yaml are served from /static/openapi.yaml
     app = Flask(__name__, static_folder='../static')
-    CORS(app, origins=["http://localhost:5173",
-    "http://localhost:3000", "https://studysmarterfrontend-fsvdw7s1k-parisqiu1s-projects.vercel.app"])
+    CORS(app, origins=[
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://studysmarterfrontend.vercel.app",  
+    "https://studysmarterfrontend-fsvdw7s1k-parisqiu1s-projects.vercel.app" 
+])
+
 
 
 
