@@ -25,7 +25,9 @@ def create_app():
     "http://localhost:5173",
     "http://localhost:3000",
     "https://studysmarterfrontend.vercel.app",  
-    "https://studysmarterfrontend-fsvdw7s1k-parisqiu1s-projects.vercel.app" 
+    "https://studysmarterfrontend-fsvdw7s1k-parisqiu1s-projects.vercel.app",
+    "https://my-new-frontend-2v5h.vercel.app"
+    
 ])
 
 
